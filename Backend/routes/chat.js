@@ -1,6 +1,7 @@
 import express from "express";
 import Thread from "../models/Thread.js";
 import getOpenAIAPIResponse from "../utils/openai.js";
+import getGroqChatResponse from "../utils/groq.js";
 
 const router = express.Router();
 
@@ -71,14 +72,13 @@ router.post("/chat", async(req, res) => {
     const {threadId, message} = req.body;
 
     if(!threadId || !message) {
-        res.status(400).json({error: "missing required fields"});
+        return res.status(400).json({error: "missing required fields"});
     }
 
     try {
         let thread = await Thread.findOne({threadId});
 
         if(!thread) {
-            //create a new thread in Db
             thread = new Thread({
                 threadId,
                 title: message,
@@ -88,7 +88,17 @@ router.post("/chat", async(req, res) => {
             thread.messages.push({role: "user", content: message});
         }
 
-        const assistantReply = await getOpenAIAPIResponse(message);
+        const useGroq = String(process.env.USE_GROQ).toLowerCase() === "true"
+          || (!process.env.OPENAI_API_KEY && !!process.env.GROQ_API_KEY);
+
+        const assistantReply = useGroq
+          ? await getGroqChatResponse(message)
+          : await getOpenAIAPIResponse(message);
+
+        if (!assistantReply) {
+            console.error("Assistant provider returned no reply for message:", message);
+            return res.status(502).json({error: "assistant response unavailable"});
+        }
 
         thread.messages.push({role: "assistant", content: assistantReply});
         thread.updatedAt = new Date();
@@ -96,7 +106,7 @@ router.post("/chat", async(req, res) => {
         await thread.save();
         res.json({reply: assistantReply});
     } catch(err) {
-        console.log(err);
+        console.error(err);
         res.status(500).json({error: "something went wrong"});
     }
 });
