@@ -7,7 +7,8 @@ import chatRoutes from "./routes/chat.js";
 const app = express();
 const PORT = process.env.PORT || 8080;
 const MONGODB_URI = process.env.MONGODB_URI;
-
+// Add this line temporarily to see what Render is actually seeing
+console.log("Checking URI:", MONGODB_URI ? "Found" : "Not Found");
 if (!MONGODB_URI) {
     console.error("Missing MONGODB_URI in Backend/.env. Set MONGODB_URI to your MongoDB connection string.");
     process.exit(1);
