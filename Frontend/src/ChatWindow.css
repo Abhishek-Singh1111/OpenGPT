@@ -67,6 +67,7 @@ input {
                 rgba(0, 0, 0, 0.05) 0 4px 6px,
                 rgba(0, 0, 0, 0.05) 0 12px 3px,
                 rgba(0, 0, 0, 0.05) 0 -3px 5px;
+    margin-right: 50px;
 }
 
 input:focus {
@@ -122,4 +123,61 @@ input:focus {
 .dropDownItem:hover {
     background-color: rgba(180, 180, 180, 0.1);
     border-radius: 6px;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+    .chatWindow {
+        width: 100%;
+    }
+
+    .navbar {
+        padding: 0.5rem 1rem;
+    }
+
+    .navbar span {
+        margin: 0.5rem 1rem;
+        font-size: 1.2rem;
+    }
+
+    .userIconDiv {
+        margin: 0.5rem 1rem;
+    }
+
+    .inputBox {
+        max-width: 90%;
+        padding: 0 1rem;
+    }
+
+    input {
+        padding: 15px;
+        font-size: 1rem;
+        margin-right: 60px;
+    }
+
+    #submit {
+        right: 25px;
+    }
+
+    .info {
+        font-size: 0.7rem;
+        padding: 0.5rem 1rem;
+        text-align: center;
+    }
+
+    .dropDown {
+        top: 3rem;
+        right: 1rem;
+        width: 140px;
+    }
+
+    .hamburger {
+        display: block !important;
+    }
+}
+
+@media (min-width: 769px) {
+    .hamburger {
+        display: none;
+    }
 }

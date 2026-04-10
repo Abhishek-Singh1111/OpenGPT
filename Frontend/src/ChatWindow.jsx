@@ -5,7 +5,7 @@ import { useContext, useState, useEffect } from "react";
 import {ScaleLoader} from "react-spinners";
 
 function ChatWindow() {
-    const {prompt, setPrompt, reply, setReply, currThreadId, setPrevChats, setNewChat} = useContext(MyContext);
+    const {prompt, setPrompt, reply, setReply, currThreadId, setPrevChats, setNewChat, sidebarOpen, setSidebarOpen} = useContext(MyContext);
     const [loading, setLoading] = useState(false);
     const [isOpen, setIsOpen] = useState(false);
 
@@ -58,10 +58,19 @@ function ChatWindow() {
         setIsOpen(!isOpen);
     }
 
+    const toggleSidebar = () => {
+        setSidebarOpen(!sidebarOpen);
+    }
+
     return (
         <div className="chatWindow">
             <div className="navbar">
-                <span>OpenGPT <i className="fa-solid fa-chevron-down"></i></span>
+                <div style={{display: 'flex', alignItems: 'center'}}>
+                    <button className="hamburger" onClick={toggleSidebar} style={{background: 'none', border: 'none', color: '#ececec', fontSize: '1.5rem', marginRight: '1rem', cursor: 'pointer'}}>
+                        <i className="fa-solid fa-bars"></i>
+                    </button>
+                    <span>OpenGPT <i className="fa-solid fa-chevron-down"></i></span>
+                </div>
                 <div className="userIconDiv" onClick={handleProfileClick}>
                     <span className="userIcon"><i className="fa-solid fa-user"></i></span>
                 </div>
@@ -91,7 +100,7 @@ function ChatWindow() {
                     <div id="submit" onClick={getReply}><i className="fa-solid fa-paper-plane"></i></div>
                 </div>
                 <p className="info">
-                    SigmaGPT can make mistakes. Check important info. See Cookie Preferences.
+                  OpenGPT can make mistakes. Check important info. See Cookie Preferences.
                 </p>
             </div>
         </div>

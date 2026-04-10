@@ -4,7 +4,7 @@ import { MyContext } from "./MyContext.jsx";
 import {v1 as uuidv1} from "uuid";
 
 function Sidebar() {
-    const {allThreads, setAllThreads, currThreadId, setNewChat, setPrompt, setReply, setCurrThreadId, setPrevChats} = useContext(MyContext);
+    const {allThreads, setAllThreads, currThreadId, setNewChat, setPrompt, setReply, setCurrThreadId, setPrevChats, sidebarOpen, setSidebarOpen} = useContext(MyContext);
 
     const getAllThreads = useCallback(async () => {
         try {
@@ -65,7 +65,9 @@ function Sidebar() {
     }
 
     return (
-        <section className="sidebar">
+        <>
+            <div className={`sidebar-overlay ${sidebarOpen ? 'show' : ''}`} onClick={() => setSidebarOpen(false)}></div>
+            <section className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
             <button onClick={createNewChat}>
                 <img src="src/assets/blacklogo.png" alt="gpt logo" className="logo"></img>
                 <span><i className="fa-solid fa-pen-to-square"></i></span>
@@ -94,7 +96,8 @@ function Sidebar() {
             <div className="sign">
                 <p>Made by Abhishek </p>
             </div>
-        </section>
+            </section>
+        </>
     )
 }
 
