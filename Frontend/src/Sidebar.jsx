@@ -4,23 +4,36 @@ import { MyContext } from "./MyContext.jsx";
 import {v1 as uuidv1} from "uuid";
 
 function Sidebar() {
-    const {allThreads, setAllThreads, currThreadId, setNewChat, setPrompt, setReply, setCurrThreadId, setPrevChats, sidebarOpen, setSidebarOpen} = useContext(MyContext);
+    const {
+        allThreads, setAllThreads,
+        currThreadId, setNewChat, setPrompt,
+        setReply, setCurrThreadId, setPrevChats,
+        sidebarOpen, setSidebarOpen,
+        token, logout, apiBaseUrl
+    } = useContext(MyContext);
 
     const getAllThreads = useCallback(async () => {
+        if (!token) return;
         try {
-            const response = await fetch("https://opengpt-2.onrender.com/api/thread");
+            const response = await fetch(`${apiBaseUrl}/thread`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
             const res = await response.json();
+            if (!response.ok) {
+                if (response.status === 401) logout();
+                return;
+            }
             const filteredData = res.map(thread => ({threadId: thread.threadId, title: thread.title}));
             //console.log(filteredData);
             setAllThreads(filteredData);
         } catch(err) {
             console.log(err);
         }
-    }, [setAllThreads]);
+    }, [apiBaseUrl, logout, setAllThreads, token]);
 
     useEffect(() => {
         getAllThreads();
-    }, [currThreadId, getAllThreads])
+    }, [currThreadId, getAllThreads, token])
 
 
     const createNewChat = () => {
@@ -35,9 +48,14 @@ function Sidebar() {
         setCurrThreadId(newThreadId);
 
         try {
-           const response = await fetch(`https://opengpt-2.onrender.com/api/thread/${newThreadId}`);
+           const response = await fetch(`${apiBaseUrl}/thread/${newThreadId}`, {
+                headers: { Authorization: `Bearer ${token}` }
+           });
             const res = await response.json();
-            console.log(res);
+            if (!response.ok) {
+                if (response.status === 401) logout();
+                return;
+            }
             setPrevChats(res);
             setNewChat(false);
             setReply(null);
@@ -48,7 +66,10 @@ function Sidebar() {
 
     const deleteThread = async (threadId) => {
         try {
-            const response = await fetch(`https://opengpt-2.onrender.com/api/thread/${threadId}`, {method: "DELETE"});
+            const response = await fetch(`${apiBaseUrl}/thread/${threadId}`, {
+                method: "DELETE",
+                headers: { Authorization: `Bearer ${token}` }
+            });
             const res = await response.json();
             console.log(res);
 

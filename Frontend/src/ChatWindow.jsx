@@ -2,22 +2,35 @@ import "./ChatWindow.css";
 import Chat from "./Chat.jsx";
 import { MyContext } from "./MyContext.jsx";
 import { useContext, useState, useEffect } from "react";
-import {ScaleLoader} from "react-spinners";
+import { ScaleLoader } from "react-spinners";
 
 function ChatWindow() {
-    const {prompt, setPrompt, reply, setReply, currThreadId, setPrevChats, setNewChat, sidebarOpen, setSidebarOpen} = useContext(MyContext);
+    const {
+        prompt, setPrompt,
+        reply, setReply,
+        currThreadId, setPrevChats,
+        setNewChat, sidebarOpen, setSidebarOpen,
+        token, logout, apiBaseUrl
+    } = useContext(MyContext);
     const [loading, setLoading] = useState(false);
     const [isOpen, setIsOpen] = useState(false);
+    const [error, setError] = useState("");
 
     const getReply = async () => {
+        if (!prompt.trim()) return;
+        if (!token) {
+            setError("You must be logged in to chat.");
+            return;
+        }
         setLoading(true);
         setNewChat(false);
+        setError("");
 
-        console.log("message ", prompt, " threadId ", currThreadId);
         const options = {
             method: "POST",
             headers: {
-                "Content-Type": "application/json"
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`
             },
             body: JSON.stringify({
                 message: prompt,
@@ -26,14 +39,24 @@ function ChatWindow() {
         };
 
         try {
-            const response = await fetch("https://opengpt-2.onrender.com/api/chat", options);
+            const response = await fetch(`${apiBaseUrl}/chat`, options);
             const res = await response.json();
-            console.log(res);
+            if (!response.ok) {
+                if (response.status === 401) {
+                    logout();
+                    setError("Session expired. Please sign in again.");
+                } else {
+                    setError(res?.error || "Unable to send message.");
+                }
+                return;
+            }
             setReply(res.reply);
         } catch(err) {
             console.log(err);
+            setError("Network error. Please try again.");
+        } finally {
+            setLoading(false);
         }
-        setLoading(false);
     }
 
     //Append new chat to prevChats
@@ -65,8 +88,8 @@ function ChatWindow() {
     return (
         <div className="chatWindow">
             <div className="navbar">
-                <div style={{display: 'flex', alignItems: 'center'}}>
-                    <button className="hamburger" onClick={toggleSidebar} style={{background: 'none', border: 'none', color: '#ececec', fontSize: '1.5rem', marginRight: '1rem', cursor: 'pointer'}}>
+                <div className="navLeft">
+                    <button className="hamburger" onClick={toggleSidebar}>
                         <i className="fa-solid fa-bars"></i>
                     </button>
                     <span>OpenGPT <i className="fa-solid fa-chevron-down"></i></span>
@@ -78,15 +101,16 @@ function ChatWindow() {
             {
                 isOpen && 
                 <div className="dropDown">
-                    <div className="dropDownItem"><i class="fa-solid fa-gear"></i> Settings</div>
-                    <div className="dropDownItem"><i class="fa-solid fa-cloud-arrow-up"></i> Upgrade plan</div>
-                    <div className="dropDownItem"><i class="fa-solid fa-arrow-right-from-bracket"></i> Log out</div>
+                    <div className="dropDownItem"><i className="fa-solid fa-gear"></i> Settings</div>
+                    <div className="dropDownItem"><i className="fa-solid fa-cloud-arrow-up"></i> Upgrade plan</div>
+                    <div className="dropDownItem" onClick={logout}><i className="fa-solid fa-arrow-right-from-bracket"></i> Log out</div>
                 </div>
             }
             <Chat></Chat>
 
-            <ScaleLoader color="#fff" loading={loading}>
-            </ScaleLoader>
+            {error && <div className="error-banner">{error}</div>}
+
+            <ScaleLoader color="#fff" loading={loading} />
             
             <div className="chatInput">
                 <div className="inputBox">
