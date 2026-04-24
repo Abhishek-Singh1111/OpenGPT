@@ -3,9 +3,10 @@ import "dotenv/config";
 import cors from "cors";
 import mongoose from "mongoose";
 import chatRoutes from "./routes/chat.js";
+import authRoutes from "./routes/auth.js";
 
 const app = express();
-const PORT = process.env.PORT || 8080;
+const PORT = Number(process.env.PORT) || 8080;
 const MONGODB_URI = process.env.MONGODB_URI;
 // Add this line temporarily to see what Render is actually seeing
 console.log("Checking URI:", MONGODB_URI ? "Found" : "Not Found");
@@ -17,6 +18,7 @@ if (!MONGODB_URI) {
 app.use(express.json());
 app.use(cors());
 
+app.use("/api/auth", authRoutes);
 app.use("/api", chatRoutes);
 
 const connectDB = async () => {

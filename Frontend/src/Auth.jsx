@@ -138,15 +138,10 @@ function Auth({ onAuthSuccess }) {
         }
       }
 
-      const localSession =
-        mode === "login"
-          ? loginLocalUser({ email, password })
-          : registerLocalUser({ name, email, password });
-
-      onAuthSuccess(localSession);
-      setName("");
-      setEmail("");
-      setPassword("");
+      throw new Error(
+        `Backend authentication is not available at ${API_BASE_URL}. ` +
+          "Make sure your backend is running with /api/auth routes and VITE_API_URL points to it."
+      );
     } catch (err) {
       console.error(err);
       setError(err?.message || "Something went wrong. Please try again.");

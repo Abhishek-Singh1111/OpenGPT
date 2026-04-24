@@ -22,11 +22,51 @@ function App() {
   });
 
   useEffect(() => {
+    // Prevent cross-account UI data leaks if auth integration swaps users/tokens underneath.
+    setAllThreads([]);
+    setPrevChats([]);
+    setReply(null);
+    setPrompt("");
+    setNewChat(true);
+    setCurrThreadId(uuidv1());
+    setSidebarOpen(false);
+  }, [user?.id]);
+
+  useEffect(() => {
     if (token) {
       localStorage.setItem("authToken", token);
     } else {
       localStorage.removeItem("authToken");
     }
+  }, [token]);
+
+  useEffect(() => {
+    if (!token) return;
+
+    let cancelled = false;
+    fetch(`${API_BASE_URL}/auth/me`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(async (response) => {
+        if (!response.ok) {
+          const err = new Error("Auth check failed");
+          err.status = response.status;
+          throw err;
+        }
+        return response.json();
+      })
+      .then((data) => {
+        if (cancelled) return;
+        if (data?.user) setUser(data.user);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        if (err?.status === 401) clearAuthState();
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [token]);
 
   useEffect(() => {
@@ -48,7 +88,7 @@ function App() {
     setNewChat(true);
   };
 
-  const logout = () => {
+  const clearAuthState = () => {
     setToken(null);
     setUser(null);
     setCurrThreadId(uuidv1());
@@ -58,6 +98,18 @@ function App() {
     setPrompt("");
     setNewChat(true);
     setSidebarOpen(false);
+  };
+
+  const logout = () => {
+    const currentToken = token;
+    if (currentToken) {
+      fetch(`${API_BASE_URL}/auth/logout`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${currentToken}` },
+      }).catch(() => {});
+    }
+
+    clearAuthState();
   };
 
   const providerValues = {
@@ -84,7 +136,7 @@ function App() {
 
   return (
     <div className="app">
-      <MyContext.Provider value={providerValues}>
+      <MyContext.Provider value={providerValues} key={user?.id || token}>
           <Sidebar />
           <ChatWindow />
         </MyContext.Provider>

@@ -10,7 +10,8 @@ function ChatWindow() {
         reply, setReply,
         currThreadId, setPrevChats,
         setNewChat, sidebarOpen, setSidebarOpen,
-        token, logout, apiBaseUrl
+        token, logout, apiBaseUrl,
+        user
     } = useContext(MyContext);
     const [loading, setLoading] = useState(false);
     const [isOpen, setIsOpen] = useState(false);
@@ -101,6 +102,14 @@ function ChatWindow() {
             {
                 isOpen && 
                 <div className="dropDown">
+                    <div className="dropDownItem">
+                        <i className="fa-solid fa-user"></i>{" "}
+                        {user?.email || "Unknown account"}
+                    </div>
+                    <div className="dropDownItem">
+                        <i className="fa-solid fa-globe"></i>{" "}
+                        {apiBaseUrl}
+                    </div>
                     <div className="dropDownItem"><i className="fa-solid fa-gear"></i> Settings</div>
                     <div className="dropDownItem"><i className="fa-solid fa-cloud-arrow-up"></i> Upgrade plan</div>
                     <div className="dropDownItem" onClick={logout}><i className="fa-solid fa-arrow-right-from-bracket"></i> Log out</div>

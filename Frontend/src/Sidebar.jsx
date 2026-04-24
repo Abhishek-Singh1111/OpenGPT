@@ -1,5 +1,5 @@
 import "./Sidebar.css";
-import { useContext, useEffect, useCallback } from "react";
+import { useContext, useEffect, useRef } from "react";
 import { MyContext } from "./MyContext.jsx";
 import {v1 as uuidv1} from "uuid";
 import logo from "./assets/blacklogo.png"; 
@@ -9,31 +9,48 @@ function Sidebar() {
         currThreadId, setNewChat, setPrompt,
         setReply, setCurrThreadId, setPrevChats,
         sidebarOpen, setSidebarOpen,
-        token, logout, apiBaseUrl
+        token, logout, apiBaseUrl,
+        user
     } = useContext(MyContext);
 
-    const getAllThreads = useCallback(async () => {
-        if (!token) return;
-        try {
-            const response = await fetch(`${apiBaseUrl}/thread`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            const res = await response.json();
-            if (!response.ok) {
-                if (response.status === 401) logout();
-                return;
-            }
-            const filteredData = res.map(thread => ({threadId: thread.threadId, title: thread.title}));
-            //console.log(filteredData);
-            setAllThreads(filteredData);
-        } catch(err) {
-            console.log(err);
-        }
-    }, [apiBaseUrl, logout, setAllThreads, token]);
+    const authKeyRef = useRef("");
+    authKeyRef.current = user?.id || token || "";
 
     useEffect(() => {
-        getAllThreads();
-    }, [currThreadId, getAllThreads, token])
+        if (!token) {
+            setAllThreads([]);
+            return;
+        }
+
+        const controller = new AbortController();
+        const requestAuthKey = authKeyRef.current;
+
+        (async () => {
+            try {
+                const response = await fetch(`${apiBaseUrl}/thread`, {
+                    headers: { Authorization: `Bearer ${token}` },
+                    signal: controller.signal
+                });
+                const res = await response.json();
+                if (controller.signal.aborted) return;
+                if (requestAuthKey !== authKeyRef.current) return;
+
+                if (!response.ok) {
+                    if (response.status === 401) logout();
+                    setAllThreads([]);
+                    return;
+                }
+                const filteredData = res.map(thread => ({threadId: thread.threadId, title: thread.title}));
+                setAllThreads(filteredData);
+            } catch(err) {
+                if (controller.signal.aborted) return;
+                console.log(err);
+                setAllThreads([]);
+            }
+        })();
+
+        return () => controller.abort();
+    }, [apiBaseUrl, currThreadId, logout, setAllThreads, token])
 
 
     const createNewChat = () => {
@@ -44,16 +61,23 @@ function Sidebar() {
         setPrevChats([]);
     }
 
+    const activeThreadRequest = useRef(0);
+
     const changeThread = async (newThreadId) => {
         setCurrThreadId(newThreadId);
+        const requestId = ++activeThreadRequest.current;
+        const requestAuthKey = authKeyRef.current;
 
         try {
            const response = await fetch(`${apiBaseUrl}/thread/${newThreadId}`, {
                 headers: { Authorization: `Bearer ${token}` }
            });
             const res = await response.json();
+            if (requestId !== activeThreadRequest.current) return;
+            if (requestAuthKey !== authKeyRef.current) return;
             if (!response.ok) {
                 if (response.status === 401) logout();
+                setPrevChats([]);
                 return;
             }
             setPrevChats(res);
@@ -61,6 +85,7 @@ function Sidebar() {
             setReply(null);
         } catch(err) {
             console.log(err);
+            setPrevChats([]);
         }
     }   
 
@@ -72,6 +97,11 @@ function Sidebar() {
             });
             const res = await response.json();
             console.log(res);
+
+            if (!response.ok) {
+                if (response.status === 401) logout();
+                return;
+            }
 
             //updated threads re-render
             setAllThreads(prev => prev.filter(thread => thread.threadId !== threadId));

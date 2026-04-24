@@ -17,10 +17,15 @@ const MessageSchema = new mongoose.Schema({
 });
 
 const ThreadSchema = new mongoose.Schema({
+    userId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        required: true,
+        index: true
+    },
     threadId: {
         type: String,
         required: true,
-        unique: true
     },
     title: {
         type: String,
@@ -36,5 +41,8 @@ const ThreadSchema = new mongoose.Schema({
         default: Date.now
     }
 });
+
+ThreadSchema.index({ userId: 1, threadId: 1 }, { unique: true });
+ThreadSchema.index({ userId: 1, updatedAt: -1 });
 
 export default mongoose.model("Thread", ThreadSchema);
