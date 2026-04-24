@@ -63,7 +63,7 @@
   box-shadow: 0 0 0 3px rgba(91, 228, 255, 0.2);
 }
 
-.auth-card button[type=\"submit\"] {
+.auth-card button[type="submit"] {
   margin-top: 0.5rem;
   padding: 0.85rem 1rem;
   border: none;
@@ -75,12 +75,12 @@
   transition: transform 150ms ease, box-shadow 150ms ease;
 }
 
-.auth-card button[type=\"submit\"]:disabled {
+.auth-card button[type="submit"]:disabled {
   opacity: 0.7;
   cursor: wait;
 }
 
-.auth-card button[type=\"submit\"]:hover:not(:disabled) {
+.auth-card button[type="submit"]:hover:not(:disabled) {
   transform: translateY(-1px);
   box-shadow: 0 12px 20px rgba(155, 123, 255, 0.3);
 }
