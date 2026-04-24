@@ -1,2 +1,2 @@
-# OpenGPT
-A MERN based ChatGPT replica implemented from scratch using OpenAI.
+# GPT-Clone
+A MERN-based ChatGPT-style clone implemented from scratch.

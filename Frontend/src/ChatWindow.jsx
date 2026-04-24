@@ -93,7 +93,7 @@ function ChatWindow() {
                     <button className="hamburger" onClick={toggleSidebar}>
                         <i className="fa-solid fa-bars"></i>
                     </button>
-                    <span>OpenGPT <i className="fa-solid fa-chevron-down"></i></span>
+                    <span>GPT-Clone <i className="fa-solid fa-chevron-down"></i></span>
                 </div>
                 <div className="userIconDiv" onClick={handleProfileClick}>
                     <span className="userIcon"><i className="fa-solid fa-user"></i></span>
@@ -102,13 +102,9 @@ function ChatWindow() {
             {
                 isOpen && 
                 <div className="dropDown">
-                    <div className="dropDownItem">
-                        <i className="fa-solid fa-user"></i>{" "}
-                        {user?.email || "Unknown account"}
-                    </div>
-                    <div className="dropDownItem">
-                        <i className="fa-solid fa-globe"></i>{" "}
-                        {apiBaseUrl}
+                    <div className="dropDownItem dropDownInfo">
+                        <i className="fa-solid fa-user"></i>
+                        <span className="dropDownText">{user?.email || "Unknown account"}</span>
                     </div>
                     <div className="dropDownItem"><i className="fa-solid fa-gear"></i> Settings</div>
                     <div className="dropDownItem"><i className="fa-solid fa-cloud-arrow-up"></i> Upgrade plan</div>
@@ -133,7 +129,7 @@ function ChatWindow() {
                     <div id="submit" onClick={getReply}><i className="fa-solid fa-paper-plane"></i></div>
                 </div>
                 <p className="info">
-                  OpenGPT can make mistakes. Check important info. See Cookie Preferences.
+                  GPT-Clone can make mistakes. Check important info. See Cookie Preferences.
                 </p>
             </div>
         </div>
