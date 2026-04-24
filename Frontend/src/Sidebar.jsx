@@ -2,8 +2,7 @@ import "./Sidebar.css";
 import { useContext, useEffect, useCallback } from "react";
 import { MyContext } from "./MyContext.jsx";
 import {v1 as uuidv1} from "uuid";
-import logo from "./assets/blacklogo.png"; // Import the image directly
-// ... other imports
+import logo from "./assets/blacklogo.png"; 
 function Sidebar() {
     const {
         allThreads, setAllThreads,

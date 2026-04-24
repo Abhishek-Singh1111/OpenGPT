@@ -12,6 +12,7 @@
     width: 100%;
     margin-bottom: 0.7rem;
     font-size: 0.9rem;
+    align-items: flex-start;
 }
 
 .userDiv {
@@ -25,6 +26,54 @@
 .gptDiv p {
     margin: 0.35rem 0;
     line-height: 1.45;
+}
+
+.assistantMessage {
+    background-color: rgba(255, 255, 255, 0.06);
+    padding: 0.52rem 0.78rem;
+    border-radius: 14px;
+    max-width: min(82%, 720px);
+    width: fit-content;
+    display: inline-block;
+    box-shadow: rgba(0, 0, 0, 0.12) 0 10px 24px;
+}
+
+.assistantMessage :is(h1, h2, h3, h4, h5, h6) {
+    margin: 0.6rem 0 0.35rem;
+    line-height: 1.25;
+}
+
+.assistantMessage :is(ul, ol) {
+    margin: 0.35rem 0;
+    padding-left: 1.25rem;
+}
+
+.assistantMessage li {
+    margin: 0.15rem 0;
+}
+
+.assistantMessage blockquote {
+    margin: 0.5rem 0;
+    padding: 0.25rem 0.75rem;
+    border-left: 3px solid rgba(255, 255, 255, 0.22);
+    background: rgba(0, 0, 0, 0.18);
+    border-radius: 10px;
+}
+
+.assistantMessage a {
+    color: #5be4ff;
+    text-decoration: none;
+}
+
+.assistantMessage a:hover {
+    text-decoration: underline;
+}
+
+.assistantMessage :not(pre) > code {
+    background: rgba(0, 0, 0, 0.25);
+    padding: 0.08rem 0.35rem;
+    border-radius: 8px;
+    font-size: 0.86em;
 }
 
 .userMessage {
@@ -44,8 +93,9 @@
 }
 
 pre {
-    white-space: pre-wrap;
+    white-space: pre;
     margin: 0.5rem 0;
+    overflow-x: auto;
 }
 
 /* Mobile responsiveness */
@@ -69,6 +119,12 @@ pre {
 
     .gptDiv p {
         line-height: 1.4;
+    }
+
+    .assistantMessage {
+        max-width: 88%;
+        border-radius: 12px;
+        padding: 0.48rem 0.66rem;
     }
 
     pre {

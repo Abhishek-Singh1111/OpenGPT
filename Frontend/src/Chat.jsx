@@ -41,7 +41,11 @@ function Chat() {
                             {
                                 chat.role === "user"? 
                                 <p className="userMessage">{chat.content}</p> : 
-                                <ReactMarkdown rehypePlugins={[rehypeHighlight]}>{chat.content}</ReactMarkdown>
+                                <div className="assistantMessage">
+                                    <ReactMarkdown rehypePlugins={[rehypeHighlight]}>
+                                        {chat.content}
+                                    </ReactMarkdown>
+                                </div>
                             }
                         </div>
                     )
@@ -53,11 +57,19 @@ function Chat() {
                             {
                                 latestReply === null ? (
                                     <div className="gptDiv" key={"non-typing"} >
-                                    <ReactMarkdown rehypePlugins={[rehypeHighlight]}>{prevChats[prevChats.length-1].content}</ReactMarkdown>
+                                    <div className="assistantMessage">
+                                        <ReactMarkdown rehypePlugins={[rehypeHighlight]}>
+                                            {prevChats[prevChats.length-1].content}
+                                        </ReactMarkdown>
+                                    </div>
                                 </div>
                                 ) : (
                                     <div className="gptDiv" key={"typing"} >
-                                     <ReactMarkdown rehypePlugins={[rehypeHighlight]}>{latestReply}</ReactMarkdown>
+                                     <div className="assistantMessage">
+                                        <ReactMarkdown rehypePlugins={[rehypeHighlight]}>
+                                            {latestReply}
+                                        </ReactMarkdown>
+                                     </div>
                                 </div>
                                 )
 
