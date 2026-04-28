@@ -1,13 +1,13 @@
 import "./ChatWindow.css";
 import Chat from "./Chat.jsx";
 import { MyContext } from "./MyContext.jsx";
-import { useContext, useState, useEffect } from "react";
+import { useContext, useState, useRef } from "react";
 import { ScaleLoader } from "react-spinners";
 
 function ChatWindow() {
     const {
         prompt, setPrompt,
-        reply, setReply,
+        setReply,
         currThreadId, setPrevChats,
         setNewChat, sidebarOpen, setSidebarOpen,
         token, logout, apiBaseUrl,
@@ -16,16 +16,32 @@ function ChatWindow() {
     const [loading, setLoading] = useState(false);
     const [isOpen, setIsOpen] = useState(false);
     const [error, setError] = useState("");
+    const requestIdRef = useRef(0);
+    const abortRef = useRef(null);
+    const CHAT_TIMEOUT_MS = 60000;
 
     const getReply = async () => {
-        if (!prompt.trim()) return;
+        const userMessage = prompt.trim();
+        if (!userMessage) return;
         if (!token) {
             setError("You must be logged in to chat.");
             return;
         }
+
+        const requestId = ++requestIdRef.current;
+        if (abortRef.current) abortRef.current.abort();
+
         setLoading(true);
         setNewChat(false);
         setError("");
+        setReply(null);
+        setPrompt("");
+
+        setPrevChats((prev) => [
+          ...prev,
+          { role: "user", content: userMessage },
+          { role: "assistant", content: "" },
+        ]);
 
         const options = {
             method: "POST",
@@ -34,13 +50,24 @@ function ChatWindow() {
                 Authorization: `Bearer ${token}`
             },
             body: JSON.stringify({
-                message: prompt,
+                message: userMessage,
                 threadId: currThreadId
             })
         };
 
         try {
-            const response = await fetch(`${apiBaseUrl}/chat`, options);
+            const controller = new AbortController();
+            abortRef.current = controller;
+            const timeout = setTimeout(() => controller.abort(), CHAT_TIMEOUT_MS);
+
+            let response;
+            try {
+              response = await fetch(`${apiBaseUrl}/chat`, { ...options, signal: controller.signal });
+            } finally {
+              clearTimeout(timeout);
+            }
+            if (requestId !== requestIdRef.current) return;
+
             const res = await response.json();
             if (!response.ok) {
                 if (response.status === 401) {
@@ -49,33 +76,62 @@ function ChatWindow() {
                 } else {
                     setError(res?.error || "Unable to send message.");
                 }
+                setPrevChats((prev) => {
+                  if (!prev.length) return prev;
+                  const next = [...prev];
+                  const lastIdx = next.length - 1;
+                  if (next[lastIdx]?.role === "assistant") {
+                    next[lastIdx] = { ...next[lastIdx], content: res?.error || "Unable to send message." };
+                    return next;
+                  }
+                  return prev;
+                });
                 return;
             }
-            setReply(res.reply);
+
+            const assistantText = res?.reply || "";
+            setReply(assistantText);
+            setPrevChats((prev) => {
+              if (!prev.length) return prev;
+              const next = [...prev];
+              const lastIdx = next.length - 1;
+              if (next[lastIdx]?.role === "assistant") {
+                next[lastIdx] = { ...next[lastIdx], content: assistantText };
+              } else {
+                next.push({ role: "assistant", content: assistantText });
+              }
+              return next;
+            });
         } catch(err) {
-            console.log(err);
-            setError("Network error. Please try again.");
+            if (requestId !== requestIdRef.current) return;
+            if (err?.name === "AbortError") {
+              setError("Request timed out. Please try again.");
+              setPrevChats((prev) => {
+                if (!prev.length) return prev;
+                const next = [...prev];
+                const lastIdx = next.length - 1;
+                if (next[lastIdx]?.role === "assistant") {
+                  next[lastIdx] = { ...next[lastIdx], content: "Request timed out. Please try again." };
+                }
+                return next;
+              });
+            } else {
+              console.log(err);
+              setError("Network error. Please try again.");
+              setPrevChats((prev) => {
+                if (!prev.length) return prev;
+                const next = [...prev];
+                const lastIdx = next.length - 1;
+                if (next[lastIdx]?.role === "assistant") {
+                  next[lastIdx] = { ...next[lastIdx], content: "Network error. Please try again." };
+                }
+                return next;
+              });
+            }
         } finally {
-            setLoading(false);
+            if (requestId === requestIdRef.current) setLoading(false);
         }
     }
-
-    //Append new chat to prevChats
-    useEffect(() => {
-        if(prompt && reply) {
-            setPrevChats(prevChats => (
-                [...prevChats, {
-                    role: "user",
-                    content: prompt
-                },{
-                    role: "assistant",
-                    content: reply
-                }]
-            ));
-        }
-
-        setPrompt("");
-    }, [reply]);
 
 
     const handleProfileClick = () => {

@@ -77,35 +77,51 @@ router.post("/chat", async(req, res) => {
     const normalizedMessage = message.trim();
 
     try {
-        let thread = await Thread.findOne({ threadId: normalizedThreadId, userId: req.auth.userObjectId });
-
-        if(!thread) {
-            thread = new Thread({
-                userId: req.auth.userObjectId,
-                threadId: normalizedThreadId,
-                title: normalizedMessage.slice(0, 120),
-                messages: [{role: "user", content: normalizedMessage}]
-            });
-        } else {
-            thread.messages.push({role: "user", content: normalizedMessage});
-        }
+        const now = new Date();
+        await Thread.updateOne(
+          { threadId: normalizedThreadId, userId: req.auth.userObjectId },
+          {
+            $setOnInsert: {
+              title: normalizedMessage.slice(0, 120),
+              createdAt: now,
+            },
+            $set: { updatedAt: now },
+            $push: { messages: { role: "user", content: normalizedMessage, timestamp: now } },
+          },
+          { upsert: true }
+        );
 
         const useGroq = String(process.env.USE_GROQ).toLowerCase() === "true"
           || (!process.env.OPENAI_API_KEY && !!process.env.GROQ_API_KEY);
 
-        const assistantReply = useGroq
-          ? await getGroqChatResponse(normalizedMessage)
-          : await getOpenAIAPIResponse(normalizedMessage);
+        let assistantReply;
+        try {
+          assistantReply = useGroq
+            ? await getGroqChatResponse(normalizedMessage)
+            : await getOpenAIAPIResponse(normalizedMessage);
+        } catch (err) {
+          const msg = String(err?.message || "");
+          const isTimeout = /timed\s*out/i.test(msg) || err?.name === "AbortError";
+          return res.status(isTimeout ? 504 : 502).json({
+            error: isTimeout
+              ? "Assistant timed out. Please try a shorter prompt or retry."
+              : "Assistant provider error. Please try again.",
+          });
+        }
 
         if (!assistantReply) {
             console.error("Assistant provider returned no reply for message:", normalizedMessage);
             return res.status(502).json({error: "assistant response unavailable"});
         }
 
-        thread.messages.push({role: "assistant", content: assistantReply});
-        thread.updatedAt = new Date();
-
-        await thread.save();
+        const replyTimestamp = new Date();
+        await Thread.updateOne(
+          { threadId: normalizedThreadId, userId: req.auth.userObjectId },
+          {
+            $set: { updatedAt: replyTimestamp },
+            $push: { messages: { role: "assistant", content: assistantReply, timestamp: replyTimestamp } },
+          }
+        );
         res.json({reply: assistantReply});
     } catch(err) {
         console.error(err);

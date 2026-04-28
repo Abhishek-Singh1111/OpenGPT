@@ -3,20 +3,9 @@ import "./Auth.css";
 import { API_BASE_URL } from "./api";
 
 const initialMode = "login";
-const API_ORIGIN = API_BASE_URL.replace(/\/api$/, "");
 const LOCAL_USERS_KEY = "opengpt_local_auth_users_v1";
-
-const getAuthUrls = (endpoint) => {
-  const candidates = [
-    `${API_BASE_URL}/auth/${endpoint}`,
-    `${API_BASE_URL}/${endpoint}`,
-    `${API_ORIGIN}/api/auth/${endpoint}`,
-    `${API_ORIGIN}/auth/${endpoint}`,
-    `${API_ORIGIN}/api/${endpoint}`,
-  ];
-
-  return [...new Set(candidates)];
-};
+const AUTH_TIMEOUT_MS = 20000;
+const AUTH_LOGO_SRC = `${import.meta.env.BASE_URL}blacklogo.png`;
 
 const parseResponse = async (response) => {
   const contentType = response.headers.get("content-type") || "";
@@ -50,7 +39,7 @@ const toSession = (user) => {
   };
 };
 
-const registerLocalUser = ({ name, email, password }) => {
+const _registerLocalUser = ({ name, email, password }) => {
   const normalizedEmail = normalizeEmail(email);
   const users = readLocalUsers();
   const exists = users.some((u) => normalizeEmail(u.email) === normalizedEmail);
@@ -70,7 +59,7 @@ const registerLocalUser = ({ name, email, password }) => {
   return toSession(newUser);
 };
 
-const loginLocalUser = ({ email, password }) => {
+const _loginLocalUser = ({ email, password }) => {
   const normalizedEmail = normalizeEmail(email);
   const users = readLocalUsers();
   const user = users.find((u) => normalizeEmail(u.email) === normalizedEmail);
@@ -90,10 +79,13 @@ function Auth({ onAuthSuccess }) {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const toggleMode = () => {
-    setMode((prev) => (prev === "login" ? "register" : "login"));
+  const setModeSafe = (nextMode) => {
+    setMode(nextMode);
     setError("");
   };
+
+  const isLogin = mode === "login";
+  const isRegister = mode === "register";
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -101,50 +93,45 @@ function Auth({ onAuthSuccess }) {
     setError("");
 
     try {
-      const endpoint = mode === "login" ? "login" : "register";
-      const payload = mode === "login" ? { email, password } : { name, email, password };
-      const authUrls = getAuthUrls(endpoint);
+      const endpoint = isLogin ? "login" : "register";
+      const payload = isLogin ? { email, password } : { name, email, password };
+      const authUrl = `${API_BASE_URL}/auth/${endpoint}`;
 
-      for (const authUrl of authUrls) {
-        let response;
-        try {
-          response = await fetch(authUrl, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload),
-          });
-        } catch {
-          continue;
-        }
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), AUTH_TIMEOUT_MS);
 
-        const { isJson, data } = await parseResponse(response);
-        if (response.ok) {
-          const parsed = isJson ? data : {};
-          onAuthSuccess({ token: parsed.token, user: parsed.user });
-          setName("");
-          setEmail("");
-          setPassword("");
-          return;
-        }
-
-        const textBody = typeof data === "string" ? data : "";
-        const looksLikeMissingRoute =
-          response.status === 404 || /Cannot\s+POST/i.test(textBody);
-
-        if (!looksLikeMissingRoute) {
-          const msg = isJson ? data?.error : textBody.slice(0, 120);
-          setError(msg || `Authentication failed (HTTP ${response.status})`);
-          return;
-        }
+      let response;
+      try {
+        response = await fetch(authUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+          signal: controller.signal,
+        });
+      } finally {
+        clearTimeout(timeout);
       }
 
-      throw new Error(
-        `Backend authentication is not available at ${API_BASE_URL}. ` +
-          "Make sure your backend is running with /api/auth routes and VITE_API_URL points to it."
-      );
+      const { isJson, data } = await parseResponse(response);
+      if (response.ok) {
+        const parsed = isJson ? data : {};
+        onAuthSuccess({ token: parsed.token, user: parsed.user });
+        setName("");
+        setEmail("");
+        setPassword("");
+        return;
+      }
+
+      const textBody = typeof data === "string" ? data : "";
+      const msg = isJson ? data?.error : textBody.slice(0, 180);
+      setError(msg || `Authentication failed (HTTP ${response.status})`);
     } catch (err) {
       console.error(err);
-      setError(err?.message || "Something went wrong. Please try again.");
+      if (err?.name === "AbortError") {
+        setError("Request timed out. Please try again.");
+      } else {
+        setError(err?.message || "Something went wrong. Please try again.");
+      }
     } finally {
       setLoading(false);
     }
@@ -152,22 +139,25 @@ function Auth({ onAuthSuccess }) {
 
   return (
     <div className="auth-wrapper">
-      <form className="auth-card" onSubmit={handleSubmit}>
-        <div className="auth-logo">
-          <i className="fa-solid fa-robot"></i>
+      <form className="auth-card" onSubmit={handleSubmit} data-mode={mode}>
+        <div className="auth-header">
+          <div className="auth-logo" aria-hidden="true">
+            <img className="auth-logo-img" src={AUTH_LOGO_SRC} alt="GPT logo" />
+          </div>
+          <h2>{isLogin ? "Sign in" : "Sign up"}</h2>
+          <p className="auth-subtitle">
+            {isLogin
+              ? "Sign in to continue chatting."
+              : "Register to save your conversations securely."}
+          </p>
         </div>
-        <h2>{mode === "login" ? "Welcome back" : "Create your account"}</h2>
-        <p className="auth-subtitle">
-          {mode === "login"
-            ? "Sign in to continue chatting."
-            : "Register to save your conversations securely."}
-        </p>
 
-        {mode === "register" && (
+        {isRegister && (
           <label>
             <span>Name</span>
             <input
               type="text"
+              autoComplete="name"
               placeholder="Your name"
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -180,6 +170,8 @@ function Auth({ onAuthSuccess }) {
           <span>Email</span>
           <input
             type="email"
+            autoComplete="email"
+            inputMode="email"
             placeholder="you@example.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -191,6 +183,7 @@ function Auth({ onAuthSuccess }) {
           <span>Password</span>
           <input
             type="password"
+            autoComplete={isLogin ? "current-password" : "new-password"}
             placeholder="********"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
@@ -202,13 +195,18 @@ function Auth({ onAuthSuccess }) {
         {error && <div className="auth-error">{error}</div>}
 
         <button type="submit" disabled={loading}>
-          {loading ? "Please wait..." : mode === "login" ? "Log in" : "Sign up"}
+          {loading ? "Please wait..." : isLogin ? "Sign in" : "Sign up"}
         </button>
 
         <p className="auth-toggle">
-          {mode === "login" ? "New here?" : "Already have an account?"}{" "}
-          <button type="button" onClick={toggleMode} className="linkish">
-            {mode === "login" ? "Create an account" : "Log in"}
+          {isLogin ? "New here?" : "Already have an account?"}{" "}
+          <button
+            type="button"
+            onClick={() => setModeSafe(isLogin ? "register" : "login")}
+            className="linkish"
+            disabled={loading}
+          >
+            {isLogin ? "Create an account" : "Sign in"}
           </button>
         </p>
       </form>

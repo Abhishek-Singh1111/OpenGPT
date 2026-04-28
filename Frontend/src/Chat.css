@@ -38,6 +38,11 @@
     box-shadow: rgba(0, 0, 0, 0.12) 0 10px 24px;
 }
 
+.assistantMessage p {
+    margin: 0.35rem 0;
+    line-height: 1.5;
+}
+
 .assistantMessage :is(h1, h2, h3, h4, h5, h6) {
     margin: 0.6rem 0 0.35rem;
     line-height: 1.25;
@@ -96,6 +101,33 @@ pre {
     white-space: pre;
     margin: 0.5rem 0;
     overflow-x: auto;
+}
+
+.assistantMessage table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0.5rem 0;
+    overflow: hidden;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.assistantMessage th,
+.assistantMessage td {
+    padding: 0.55rem 0.6rem;
+    vertical-align: top;
+    text-align: left;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.assistantMessage th {
+    background: rgba(0, 0, 0, 0.18);
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.92);
+}
+
+.assistantMessage tr:last-child td {
+    border-bottom: none;
 }
 
 /* Mobile responsiveness */
